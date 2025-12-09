@@ -22,33 +22,33 @@ jobs:
         with:
           node-version: "20"
 
-      # 1) INSTALAR DEPENDENCIAS
+  
       - name: Instalar dependencias
         run: npm install
 
-      # 2) EJECUTAR PRUEBAS UNITARIAS
+     
       - name: Ejecutar pruebas
         run: npm test
 
-      # 3) LOGIN EN DOCKER HUB
+   
       - name: Login en Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 4) CONSTRUIR IMAGEN DOCKER
+     
       - name: Construir imagen Docker
         run: |
           docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:${{ github.sha }} .
 
-      # 5) SUBIR IMAGEN A DOCKER HUB
+   
       - name: Subir imagen a Docker Hub
         run: |
           docker push $IMAGE_NAME:latest
           docker push $IMAGE_NAME:${{ github.sha }}
 
-      # 6) DESPLEGAR A PRODUCCIÓN (RENDER)
+ 
       - name: Desplegar a Render
         env:
           RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
