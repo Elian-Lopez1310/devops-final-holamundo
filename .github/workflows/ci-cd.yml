@@ -1,0 +1,62 @@
+name: CI/CD DevOps Final
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  build-test-publish-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/devops-holamundo
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # 1) INSTALAR DEPENDENCIAS
+      - name: Instalar dependencias
+        run: npm install
+
+      # 2) EJECUTAR PRUEBAS UNITARIAS
+      - name: Ejecutar pruebas
+        run: npm test
+
+      # 3) LOGIN EN DOCKER HUB
+      - name: Login en Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 4) CONSTRUIR IMAGEN DOCKER
+      - name: Construir imagen Docker
+        run: |
+          docker build -t $IMAGE_NAME:latest -t $IMAGE_NAME:${{ github.sha }} .
+
+      # 5) SUBIR IMAGEN A DOCKER HUB
+      - name: Subir imagen a Docker Hub
+        run: |
+          docker push $IMAGE_NAME:latest
+          docker push $IMAGE_NAME:${{ github.sha }}
+
+      # 6) DESPLEGAR A PRODUCCIÓN (RENDER)
+      - name: Desplegar a Render
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "No hay deploy hook configurado, omitiendo despliegue."
+            exit 0
+          fi
+
+          echo "Lanzando despliegue en Render..."
+          curl -X POST "$RENDER_DEPLOY_HOOK_URL"
